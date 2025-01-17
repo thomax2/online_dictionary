@@ -15,7 +15,7 @@ typedef struct user_msg{
     char ID[20];
     char password[20];
 }user_msg;
-// use to test version control
+
 int main(int argc, const char *argv[])
 {
     user_msg usermsg;
