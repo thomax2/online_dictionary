@@ -109,8 +109,11 @@ int main(int argc, const char *argv[])
                 if(len > 0 && usermsg.ID[len-1] == '\n')
                     usermsg.ID[len-1] = '\0';
                 send(sockcd,&usermsg,sizeof(usermsg),0);
-            }
+            }else
+                continue;
+            printf("ni\n");
             Recv_len = recv(sockcd,recBuf,200,0);
+            printf("hao\n");
             if(Recv_len != -1)
                 printf("Server:%s\n",recBuf);
         }
