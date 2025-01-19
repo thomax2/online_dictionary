@@ -10,6 +10,7 @@
 #include <string.h>
 #include "sqlite3.h"
 #include <time.h>
+#include <pthread.h>
 
 typedef struct sockaddr sockaddr;
 typedef struct user_msg{
@@ -176,6 +177,69 @@ int word_search(sqlite3 *dictdb, sqlite3 *hisdb, user_msg usermsg, user_msg user
         }
     }
     return 1;
+}
+
+int user_inf_fetch(user_msg* usermsg, int aID)
+{
+    int Recv_len;
+    Recv_len = recv(aID,usermsg,sizeof(*usermsg),0); //receive data from client
+    printf("%d\n",Recv_len);
+    if(Recv_len > 0){
+        printf("%s\t%s\n",usermsg->ID,usermsg->password);
+        return 1;
+    }
+    else
+        return 0; 
+}
+
+void* rcv_cli_proc(void* arg)
+{
+    int states =0; //0 user uncertain; 1 user certain;
+    user_msg usermsg;
+    user_msg usermsg_c;
+    int Recv_len;
+    char recBuf[200]; // receive data from client
+   
+    int aID = *(int *)arg;
+
+    sqlite3* userdb = NULL;
+    if (sqlite3_open("./user.db",&userdb) != SQLITE_OK) {
+        printf("user_db open fail\n");
+    }
+    sqlite3* hisdb = NULL;
+    if (sqlite3_open("./history.db",&hisdb) != SQLITE_OK) {
+        printf("history_db open fail\n");
+    }
+    sqlite3* dictdb = NULL;
+    if (sqlite3_open("./englishwords.db",&dictdb) != SQLITE_OK) {
+        printf("englishwords_db open fail\n");
+    }
+   
+    while(1)
+    {
+        if(!user_inf_fetch(&usermsg,aID))
+            break;
+        if(states == 0){
+            if(usermsg.type == 'R'){
+                states = user_register(userdb, usermsg, aID);
+            }
+            else if(usermsg.type == 'L'){
+                states = user_log(userdb,hisdb,usermsg,aID,&usermsg_c);
+            }
+        }
+        else if(states == 1){
+            if(usermsg.type == 'E'){
+                states = user_exit(aID);
+            }
+            else if(usermsg.type == 'S'){
+                states = word_search(dictdb,hisdb,usermsg,usermsg_c,aID);
+            }
+        }
+    }
+    sqlite3_close(userdb);
+    sqlite3_close(hisdb);
+    sqlite3_close(dictdb);
+    return NULL;
 }
 
 #endif

@@ -15,11 +15,11 @@ all: $(SERVER) $(CLIENT)
 
 # 编译服务器
 $(SERVER):$(SERVER_SRC)
-	$(CC) $(SERVER_SRC) -o $(SERVER) $(LDFLAGS)
+	$(CC) $(SERVER_SRC) -o $(SERVER) $(LDFLAGS) -lpthread 
 
 # 编译客户端
 $(CLIENT):$(CLIENT_SRC)
-	$(CC) $(CLIENT_SRC) -o $(CLIENT) $(LDFLAGS)
+	$(CC) $(CLIENT_SRC) -o $(CLIENT) $(LDFLAGS) -lpthread
 
 # 清理目标
 clean:
