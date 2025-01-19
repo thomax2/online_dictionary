@@ -18,24 +18,25 @@ int main(int argc, const char *argv[])
     
     listen(sockfd,5);
     printf("waiting client\n");
+    
+    List PtrL = list_create();
 
     struct sockaddr_in client_addr;
     int client_addr_len = sizeof(client_addr);
     pthread_t tid;
-    while(1)
-    {
+    msg cli_msg; 
+    while(1){
         aID = accept(sockfd,(sockaddr*)&client_addr,&client_addr_len);
         if(aID != -1){
             printf("listen new client\n");
         }
-        
-        if(pthread_create(&tid, NULL, rcv_cli_proc, &aID) != 0)
-		{
+        cli_msg.newfd = aID;
+        cli_msg.L = PtrL;
+        if(pthread_create(&tid, NULL, rcv_cli_proc, &cli_msg) != 0){
 			printf("pthread_create\n");
 			return -1;
         }
     }
-
     close(aID);
     return 0;
 }

@@ -11,6 +11,7 @@
 #include "sqlite3.h"
 #include <time.h>
 #include <pthread.h>
+#include "list.h"
 
 typedef struct sockaddr sockaddr;
 typedef struct user_msg{
@@ -19,6 +20,10 @@ typedef struct user_msg{
     char password[20];
 }user_msg;
 
+typedef struct msg{
+    List L;
+    int newfd;
+}msg;
 
 static int Insert_Check_Callback(void *data, int argc, char **argv, char **azColName){
     if (argc > 0) {
@@ -78,7 +83,7 @@ int user_register(sqlite3* userdb, user_msg usermsg, int aID)
 }
 
 
-int user_log(sqlite3 *userdb, sqlite3 *hisdb, user_msg usermsg, int aID, user_msg* usermsg_c)
+int user_log(sqlite3 *userdb, sqlite3 *hisdb, user_msg usermsg, int aID, user_msg* usermsg_c, List PtrL)
 {
     char* errmsg = NULL;
     char* sql_cre_table = "create table if not exists userMsg (id text primary key, password text);";
@@ -86,6 +91,13 @@ int user_log(sqlite3 *userdb, sqlite3 *hisdb, user_msg usermsg, int aID, user_ms
     char sql[200];
     int flag_ID = 0;
     int flag_password = 0;
+   
+    if(Find(usermsg.ID,PtrL) != NULL){
+        sprintf(sendBuf,"Account is already Log\n");
+        send(aID,sendBuf,strlen(sendBuf)+1,0);
+        return 0;
+    }
+
     if (sqlite3_exec(userdb,sql_cre_table,NULL,NULL,&errmsg) != SQLITE_OK) {
         printf("userdb table create fail\n");
     }
@@ -104,29 +116,26 @@ int user_log(sqlite3 *userdb, sqlite3 *hisdb, user_msg usermsg, int aID, user_ms
         }
         if (flag_password == 1) //user confirm
         {
-            memset(sendBuf,0,sizeof(sendBuf)); 
+            Insert(PtrL,usermsg.ID);
             sprintf(sendBuf,"Log in success\n");
             send(aID,sendBuf,strlen(sendBuf)+1,0);    
             snprintf(sql,sizeof(sql), \
                     "create table if not exists %s (word text, meaning text, time text);",\
                     usermsg.ID);
-            if(sqlite3_exec(hisdb,sql,NULL,NULL,&errmsg) != SQLITE_OK) {
+            if(sqlite3_exec(hisdb,sql,NULL,NULL,&errmsg) != SQLITE_OK)
                 printf("hisdb create table fail\n");
-            }  
             strcpy(usermsg_c->ID,usermsg.ID);
             strcpy(usermsg_c->password, usermsg.password);
             return 1;
         }
         else
         {
-            memset(sendBuf,0,sizeof(sendBuf));
             sprintf(sendBuf,"Password error\n");
             send(aID,sendBuf,strlen(sendBuf)+1,0);
         }
     }
     else
     {
-        memset(sendBuf,0,sizeof(sendBuf)); 
         sprintf(sendBuf,"Account is not exist\n");
         send(aID,sendBuf,strlen(sendBuf)+1,0);
     }
@@ -200,7 +209,8 @@ void* rcv_cli_proc(void* arg)
     int Recv_len;
     char recBuf[200]; // receive data from client
    
-    int aID = *(int *)arg;
+    int aID = ((msg *)arg)->newfd;
+    List PtrL = ((msg *)arg)->L;
 
     sqlite3* userdb = NULL;
     if (sqlite3_open("./user.db",&userdb) != SQLITE_OK) {
@@ -224,7 +234,7 @@ void* rcv_cli_proc(void* arg)
                 states = user_register(userdb, usermsg, aID);
             }
             else if(usermsg.type == 'L'){
-                states = user_log(userdb,hisdb,usermsg,aID,&usermsg_c);
+                states = user_log(userdb,hisdb,usermsg,aID,&usermsg_c,PtrL);
             }
         }
         else if(states == 1){
