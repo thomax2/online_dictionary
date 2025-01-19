@@ -1,20 +1,4 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <fcntl.h>
-#include <errno.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-#include <string.h>
-#include "sqlite3.h"
-
-typedef struct sockaddr sockaddr;
-typedef struct user_msg{
-    char type;
-    char ID[20];
-    char password[20];
-}user_msg;
+#include "client.h"
 
 int main(int argc, const char *argv[])
 {
@@ -48,37 +32,21 @@ int main(int argc, const char *argv[])
     char sendBuf[100];
     while(1)
     {
-        if(states == 0)
-        {
+        if(states == 0){
             printf("input R: Register\tL: Log in\tQ: quit\n");
             usermsg.type =  getchar();
             while ((ch_temp = getchar()) != '\n' && ch_temp != EOF);
             if(usermsg.type == 'R'){
-                printf("Register ID: ");  
-                fgets(usermsg.ID,sizeof(usermsg.ID),stdin);
-                len = strlen(usermsg.ID);
-                if(len > 0 && usermsg.ID[len-1] == '\n')
-                    usermsg.ID[len-1] = '\0';
-                printf("Register Password: ");
-                fgets(usermsg.password,sizeof(usermsg.password),stdin);
-                len = strlen(usermsg.password);
-                if(len > 0 && usermsg.password[len-1] == '\n')
-                    usermsg.password[len-1] = '\0';
+                cli_user_register(&usermsg);
             }
             else if(usermsg.type == 'Q'){
                 break;
             }
             else if(usermsg.type == 'L'){
-                printf("ID: ");  
-                fgets(usermsg.ID,sizeof(usermsg.ID),stdin);
-                len = strlen(usermsg.ID);
-                if(len > 0 && usermsg.ID[len-1] == '\n')
-                    usermsg.ID[len-1] = '\0';
-                printf("Password: ");
-                fgets(usermsg.password,sizeof(usermsg.password),stdin);
-                len = strlen(usermsg.password);
-                if(len > 0 && usermsg.password[len-1] == '\n')
-                    usermsg.password[len-1] = '\0';
+                cli_user_log(&usermsg);                
+            }
+            else{
+                continue;
             }
             send(sockcd,&usermsg,sizeof(usermsg),0);
             
@@ -91,29 +59,22 @@ int main(int argc, const char *argv[])
             if(Recv_len != -1)
                 printf("Server:%s\n",recBuf);
         }
-        else if(states == 1)
-        {
+        else if(states == 1){
             printf("input S: search word\tE: Exit account\tQ: quit\n");
             usermsg.type =  getchar();
             while ((ch_temp = getchar()) != '\n' && ch_temp != EOF);
-            if(usermsg.type == 'E')
-            {
-                states = 0;
-                send(sockcd,&usermsg,sizeof(usermsg),0);
-            }else if(usermsg.type == 'Q'){
+            if(usermsg.type == 'E'){
+                states = cli_user_exit(&usermsg,sockcd);
+            }
+            else if(usermsg.type == 'Q'){
                 break;
-            }else if(usermsg.type == 'S'){
-                printf("word: ");  
-                fgets(usermsg.ID,sizeof(usermsg.ID),stdin);
-                len = strlen(usermsg.ID);
-                if(len > 0 && usermsg.ID[len-1] == '\n')
-                    usermsg.ID[len-1] = '\0';
-                send(sockcd,&usermsg,sizeof(usermsg),0);
-            }else
+            }
+            else if(usermsg.type == 'S'){
+                cli_search_word(&usermsg,sockcd);
+            }
+            else
                 continue;
-            printf("ni\n");
             Recv_len = recv(sockcd,recBuf,200,0);
-            printf("hao\n");
             if(Recv_len != -1)
                 printf("Server:%s\n",recBuf);
         }
