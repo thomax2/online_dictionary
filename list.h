@@ -17,6 +17,13 @@ List list_create()
     return PtrL;
 }
 
+int Empty(List PtrL)
+{
+    if(PtrL == NULL)
+        return -1;
+    return NULL == PtrL->next ? 1:0;
+}
+
 List Find(char *newcli_id, List PtrL)
 {
     List p = PtrL;
@@ -38,6 +45,21 @@ int Insert(List PtrL, char* newcli_id)
 
     p->next = PtrL->next;
     PtrL->next = p;
+    return 0;
+}
+
+int Delete(List PtrL, char ecli_id[20])
+{
+    if(PtrL == NULL || Empty(PtrL))
+        return -1;
+
+    List p = PtrL;
+    while(strcmp((p->next)->id,ecli_id))
+        p = p->next;
+    List s = p->next;
+    p->next = s->next;
+    free(s);
+    s=NULL;
     return 0;
 }
 

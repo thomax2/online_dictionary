@@ -142,9 +142,10 @@ int user_log(sqlite3 *userdb, sqlite3 *hisdb, user_msg usermsg, int aID, user_ms
     return 0;
 }
 
-int user_exit(int aID)
+int user_exit(List PtrL, int aID, char *ecli_id)
 {
     char sendBuf[200];
+    Delete(PtrL,ecli_id);
     sprintf(sendBuf,"Account exit success\n");
     send(aID,sendBuf,strlen(sendBuf)+1,0);
     return 0;
@@ -194,7 +195,7 @@ int user_inf_fetch(user_msg* usermsg, int aID)
     Recv_len = recv(aID,usermsg,sizeof(*usermsg),0); //receive data from client
     printf("%d\n",Recv_len);
     if(Recv_len > 0){
-        printf("%s\t%s\n",usermsg->ID,usermsg->password);
+        //printf("%s\t%s\n",usermsg->ID,usermsg->password);
         return 1;
     }
     else
@@ -203,6 +204,7 @@ int user_inf_fetch(user_msg* usermsg, int aID)
 
 void* rcv_cli_proc(void* arg)
 {
+    pthread_detach(pthread_self());
     int states =0; //0 user uncertain; 1 user certain;
     user_msg usermsg;
     user_msg usermsg_c;
@@ -239,17 +241,18 @@ void* rcv_cli_proc(void* arg)
         }
         else if(states == 1){
             if(usermsg.type == 'E'){
-                states = user_exit(aID);
+                states = user_exit(PtrL,aID,usermsg_c.ID);
             }
             else if(usermsg.type == 'S'){
                 states = word_search(dictdb,hisdb,usermsg,usermsg_c,aID);
             }
         }
     }
+    close(aID);
     sqlite3_close(userdb);
     sqlite3_close(hisdb);
     sqlite3_close(dictdb);
-    return NULL;
+    pthread_exit(NULL);
 }
 
 #endif

@@ -9,16 +9,18 @@ LDFLAGS = -lsqlite3
 # 定义源文件
 SERVER_SRC=server.c
 CLIENT_SRC=client.c
+SER_HEAD=server.h list.h
+CLI_HEAD=client.h
 
 # 默认目标
 all: $(SERVER) $(CLIENT)
 
 # 编译服务器
-$(SERVER):$(SERVER_SRC)
+$(SERVER):$(SERVER_SRC) $(SER_HEAD)
 	$(CC) $(SERVER_SRC) -o $(SERVER) $(LDFLAGS) -lpthread 
 
 # 编译客户端
-$(CLIENT):$(CLIENT_SRC)
+$(CLIENT):$(CLIENT_SRC) $(CLI_HEAD)
 	$(CC) $(CLIENT_SRC) -o $(CLIENT) $(LDFLAGS) -lpthread
 
 # 清理目标

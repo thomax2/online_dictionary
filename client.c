@@ -67,6 +67,8 @@ int main(int argc, const char *argv[])
                 states = cli_user_exit(&usermsg,sockcd);
             }
             else if(usermsg.type == 'Q'){
+                usermsg.type = 'E';
+                states = cli_user_exit(&usermsg,sockcd);
                 break;
             }
             else if(usermsg.type == 'S'){

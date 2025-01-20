@@ -1,5 +1,34 @@
 #include "server.h"
 
+void cli_inf_print(List PtrL)
+{
+    List p = PtrL;
+    if(p == NULL){
+        printf("no user log\n");
+        return;
+    }
+    if(p->next == NULL)
+        printf("no user log");
+    while(p->next != NULL){
+        printf("user:%s \t", (p->next)->id);
+        p = p->next;
+    }
+    printf("\n");
+    return;
+}
+
+void* cli_inf_loop_print(void *arg)
+{
+    pthread_detach(pthread_self());
+    List PtrL = (List)arg;
+    while(1)
+    {
+        cli_inf_print(PtrL); 
+        sleep(3);
+    }
+    pthread_exit(NULL);
+}
+
 int main(int argc, const char *argv[])
 {
     int sockfd = socket(AF_INET,SOCK_STREAM,0); // build socket
@@ -20,15 +49,21 @@ int main(int argc, const char *argv[])
     printf("waiting client\n");
     
     List PtrL = list_create();
+    pthread_t tid;
+    
+    if(pthread_create(&tid,NULL,cli_inf_loop_print,PtrL) != 0)
+    {
+        printf("thread_create fail\n");
+        return -1;
+    }
 
     struct sockaddr_in client_addr;
     int client_addr_len = sizeof(client_addr);
-    pthread_t tid;
     msg cli_msg; 
     while(1){
         aID = accept(sockfd,(sockaddr*)&client_addr,&client_addr_len);
         if(aID != -1){
-            printf("listen new client\n");
+            printf("listen new client %d \n",aID);
         }
         cli_msg.newfd = aID;
         cli_msg.L = PtrL;
